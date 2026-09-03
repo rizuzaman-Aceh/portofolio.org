@@ -305,3 +305,26 @@
     });
   }
 })();
+
+
+/* V16.1 realtime HUD: lightweight clock/date + Open-Meteo current conditions */
+(()=>{
+  const clockEl=document.querySelector('#liveClock');
+  const dateEl=document.querySelector('#liveDate');
+  const tempEl=document.querySelector('#weatherTemp');
+  const metaEl=document.querySelector('#weatherMeta');
+  const tick=()=>{
+    const now=new Date();
+    const parts=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(now);
+    const g=k=>parts.find(p=>p.type===k)?.value||'00';
+    if(clockEl) clockEl.textContent=`${g('hour')}:${g('minute')}:${g('second')}`;
+    if(dateEl) dateEl.textContent=new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',weekday:'long',day:'2-digit',month:'short',year:'numeric'}).format(now);
+  };
+  tick(); setInterval(tick,1000);
+  if(tempEl&&metaEl){
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.2088&longitude=106.8456&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&timezone=Asia%2FJakarta',{cache:'no-store'})
+      .then(r=>r.ok?r.json():Promise.reject(new Error('weather unavailable')))
+      .then(d=>{const c=d.current||{}; const code=Number(c.weather_code); const labels={0:'Cerah',1:'Cerah berawan',2:'Berawan sebagian',3:'Mendung',45:'Berkabut',48:'Berkabut',51:'Gerimis',61:'Hujan ringan',63:'Hujan',65:'Hujan lebat',80:'Hujan lokal',81:'Hujan lokal',82:'Hujan deras',95:'Badai'}; tempEl.textContent=`${Math.round(c.temperature_2m)}°C`; metaEl.textContent=`Jakarta · ${labels[code]||'Kondisi aktif'}`;})
+      .catch(()=>{tempEl.textContent='--°C';metaEl.textContent='Jakarta · data unavailable';});
+  }
+})();
